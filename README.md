@@ -8,3 +8,6 @@ Inspired / hacked together from [pyethrecover](https://github.com/burjorjee/pyet
 Features
 - Supports adding a wordlist to broaden cracking dictionary.
 - Parallelizes cracking. More CPU cores and hyperthreading, faster cracking.
+
+## Wordlists
+Google for a wordlist in your language or covering topics that you're likely to have used in your phrase. Some useful wordlists [here](http://ftp.icm.edu.pl/packages/wordlists/) and [here](https://wiki.skullsecurity.org/Passwords).
