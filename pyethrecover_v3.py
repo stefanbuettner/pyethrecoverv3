@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from keys import decode_keystore_json #keys.py from pyethereum, we only want the decode_keystore_json function
 import json
