@@ -31,13 +31,13 @@ def attempt(w, pw):
     # sys.stdout.write("\r")
 
     # sys.stdout.write("\rAttempt #%d: %s" % (counter.value, pw)) #prints simple progress with # in list that is tested and the pw string
-    sys.stdout.write("Attempt #%d: %s\n" % (counter.value, pw)) #prints simple progress with # in list that is tested and the pw string
-    sys.stdout.flush()
+    #sys.stdout.write("Attempt #%d: %s\n" % (counter.value, pw)) #prints simple progress with # in list that is tested and the pw string
+    #sys.stdout.flush()
     #print(counter.value)
     counter.increment()
 
-    if len(pw) < 10:
-        return ""
+    #if len(pw) < 10:
+    #    return ""
     try:
         o = decode_keystore_json(w, pw)
         print(o)
@@ -90,6 +90,13 @@ def __main__():
     parser.add_option('-w', '--wallet',
                       default='wallet.json', dest='wallet',
                       help="The wallet against which to try the passwords. (default: %default)")
+    parser.add_option('-j', '--jobs',
+                      default='-1', dest='jobs', type='int',
+                      help="Maximum number of threads to use. (default: %default = unbound)")
+    parser.add_option('-g', '--pwgenerator',
+                      default=None, dest='pwgenerator',
+                      help="Saved state of a password generator. "
+                            "If specified, the program continues with this generator.")
 
     (options, args) = parser.parse_args()
 
@@ -126,6 +133,11 @@ def __main__():
         grammar = eval(open(options.pwsfile, 'r').read())
         pwds = itertools.chain(pwds, generate_all(grammar, ''))
 
+    if options.pwgenerator:
+        print("Loading pwgenerator file %s" % options.pwgenerator)
+        with open(options.pwgenerator) as pwgenfile:
+            pwgenerator.from_json(pwgenfile.read())
+
     global counter
     counter = Counter()
     pwds = itertools.chain(pwds, pwgenerator)
@@ -133,8 +145,9 @@ def __main__():
     # n_pws = len(list(pwds))
     # print 'Number of passwords to test: %d' % (n_pws)
 
+    print("Using %d jobs" % options.jobs)
     try:
-        Parallel(n_jobs=-1)(delayed(attempt)(w, pw) for pw in pwds)
+        Parallel(n_jobs=options.jobs, backend="threading")(delayed(attempt)(w, pw) for pw in pwds)
         # print("\n")
     except Exception as e:
         traceback.print_exc()

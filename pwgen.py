@@ -37,8 +37,12 @@ class PwGenerator(object):
         import json
         return json.dumps(self, default=lambda o : o.__dict__, sort_keys=True, indent=4)
 
-    def from_json(self):
-        raise NotImplemented()
+    def from_json(self, pwgen_json):
+        import json
+        obj = json.loads(pwgen_json)
+        self.alphabet = obj['alphabet']
+        self.i = obj['i']
+        self.max_length = obj['max_length']
 
 
 digits = "0123456789"
