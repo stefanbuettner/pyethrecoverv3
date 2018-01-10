@@ -30,8 +30,7 @@ class PwGenerator(object):
         if self.mod is not None:
             self.mod.reset(s)
             return self.mod.__next__()
-        else:
-            return s
+        return s
 
     def _get_str_(self, i):
         if self.max_length >= 0 and i > self.max_length:
@@ -56,14 +55,15 @@ class PwGenerator(object):
 
 
 class Rule:
-    def __init__(self, match, replacements, modification_rule=None, _mod_=None):
+    def __init__(self, match, replacements, modification_rule=None):
+        if len(match) != 1:
+            raise RuntimeError("match must be one character but is %s" % match)
         self.match = match
-        self.replacements = replacements
+        self.replacements = match + replacements
         self.s = ""
         self.i = 0
-        self.idx = None
+        self.matches = []
         self.mod = modification_rule
-        self.mod2 = _mod_
 
     def next(self):
         return self.__next__()
@@ -72,16 +72,49 @@ class Rule:
         return self
 
     def __next__(self):
-        pass
+        if self.mod is not None:
+            if self.i == 0:
+                self.i += 1
+            try:
+                return self.mod.__next__()
+            except StopIteration:
+                pass
+        s = self._get_str_(self.i)
+        self.i += 1
+        if self.mod is not None:
+            self.mod.reset(s)
+            return self.mod.__next__()
+        return s
 
     def reset(self, s):
         self.s = s
-        self.idx = self.s.find(self.match)
-        if self.idx >= 0:
-            if self._mod_ is not None:
-                self._mod_.reset(self.s[self.idx + 1:])
+        self.i = 0
+        self.matches = self._find_matches_()
+        if len(self.matches) >= 0:
+            if self.mod is not None:
+                self.mod.reset(s)
 
-        pass
+    def _find_matches_(self):
+        matches = []
+        idx = self.s.find(self.match)
+        while idx >= 0:
+            matches.append(idx)
+            idx = self.s.find(self.match, idx + 1)
+        return matches
+
+    def _get_str_(self, i):
+        len_alphabet = len(self.replacements)
+        combinations = len_alphabet ** len(self.matches)
+        if self.i >= combinations:
+            raise StopIteration()
+        k = 0
+        s = self.s
+        while i > 0:
+            idx = self.matches[k]
+            s = s[:idx] + self.replacements[i % len_alphabet] + s[idx+1:]
+            i = i // len_alphabet
+            k += 1
+        return s
 
 
 digits = "0123456789"
@@ -91,8 +124,11 @@ symbols = "@&$?!"
 
 if __name__ == "__main__":
     import json
-    gen = PwGenerator(["foo", "bar", "@", "3141"], max_length=3, min_length=1)
-    with open('pwgenerator.json', "w") as file:
-        file.write(gen.to_json())
-    for pw in gen:
+    gen = Rule("a", "4@")
+    #gen2 = Rule("n", "70", gen)
+    gen2 = PwGenerator(["foo", "bar"], max_length=3, min_length=1, modification_rule=gen)
+    #with open('pwgenerator.json', "w") as file:
+    #    file.write(gen.to_json())
+    #gen2.reset("anan")
+    for pw in gen2:
         print(pw)
