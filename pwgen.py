@@ -124,11 +124,32 @@ symbols = "@&$?!"
 
 if __name__ == "__main__":
     import json
-    gen = Rule("a", "4@")
-    #gen2 = Rule("n", "70", gen)
-    gen2 = PwGenerator(["foo", "bar"], max_length=3, min_length=1, modification_rule=gen)
+    r_A = Rule("A", "4@")
+    r_a = Rule("a", "A", r_A)
+
+    r_O = Rule("O", "0", r_a)
+    r_o = Rule("o", "O", r_O)
+
+    r_l = Rule("l", "1", r_o)
+
+    r_E = Rule("E", "3", r_l)
+    r_e = Rule("e", "E", r_E)
+
+    r_S = Rule("S", "$", r_e)
+    r_s = Rule("s", "S", r_S)
+
+    r_I = Rule("I", "!", r_s)
+    r_i = Rule("i", "I", r_I)
+
+    r_B = Rule("B", "8", r_i)
+    r_b = Rule("b", "B", r_B)
+
+    r_T = Rule("T", "7", r_b)
+    r_t = Rule("t", "T", r_T)
+
+    r_p = Rule("p", "P", r_t)
+    generator = PwGenerator(["anabel", "1337"], max_length=1, min_length=1, modification_rule=r_p)
     #with open('pwgenerator.json', "w") as file:
     #    file.write(gen.to_json())
-    #gen2.reset("anan")
-    for pw in gen2:
+    for pw in generator:
         print(pw)
