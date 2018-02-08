@@ -85,8 +85,8 @@ def __main__():
                       default='wallet.json', dest='wallet',
                       help="The wallet against which to try the passwords. (default: %default)")
     parser.add_option('-j', '--jobs',
-                      default='-1', dest='jobs', type='int',
-                      help="Maximum number of threads to use. (default: %default = unbound)")
+                      default='1', dest='jobs', type='int',
+                      help="Maximum number of threads to use. (default: %default)")
     parser.add_option('-g', '--pwgenerator',
                       default=None, dest='pwgenerator',
                       help="Saved state of a password generator. "
@@ -134,39 +134,39 @@ def __main__():
             pwgenerator.from_json(pwgenfile.read())
             pwds = itertools.chain(pwds, pwgenerator)
 
-    r_A = pwgen.Rule("A", "4@")
-    r_a = pwgen.Rule("a", "A", r_A)
+    #r_A = pwgen.Rule("A", "4@")
+    r_a = pwgen.Rule("a", "A4@")
 
-    r_O = pwgen.Rule("O", "0", r_a)
-    r_o = pwgen.Rule("o", "O", r_O)
+    r_O = pwgen.Rule("O", "0")
+    r_o = pwgen.Rule("o", "O")
 
-    r_l = pwgen.Rule("l", "1", r_o)
+    r_l = pwgen.Rule("l", "1")
 
-    r_E = pwgen.Rule("E", "3", r_l)
-    r_e = pwgen.Rule("e", "E", r_E)
+    r_E = pwgen.Rule("E", "3")
+    r_e = pwgen.Rule("e", "E")
 
-    r_S = pwgen.Rule("S", "$", r_e)
-    r_s = pwgen.Rule("s", "S", r_S)
+    r_S = pwgen.Rule("S", "$")
+    r_s = pwgen.Rule("s", "S")
 
-    r_I = pwgen.Rule("I", "!", r_s)
-    r_i = pwgen.Rule("i", "I", r_I)
+    r_I = pwgen.Rule("I", "!")
+    r_i = pwgen.Rule("i", "I")
 
-    r_B = pwgen.Rule("B", "8", r_i)
-    r_b = pwgen.Rule("b", "B", r_B)
+    r_B = pwgen.Rule("B", "8")
+    r_b = pwgen.Rule("b", "B")
 
-    r_T = pwgen.Rule("T", "7", r_b)
-    r_t = pwgen.Rule("t", "T", r_T)
+    r_T = pwgen.Rule("T", "7")
+    r_t = pwgen.Rule("t", "T")
 
-    r_p = pwgen.Rule("p", "P", r_t)
+    r_p = pwgen.Rule("p", "P")
 
-    r_r = pwgen.Rule("r", "R", r_p)
+    r_r = pwgen.Rule("r", "R")
 
-    g = pwgen.PwGenerator(["anabel", "1337"], modification_rule=r_r, max_length=1)
+    replacementRules = pwgen.RuleCollection([r_a])
+    g = pwgen.PwGenerator(["ana", "bel"], max_length=2, min_length=1, modification_rule=replacementRules)
     pwds = itertools.chain(pwds, g)
 
     global counter
     counter = Counter()
-    pwds = itertools.chain(pwds, pwgenerator)
 
     # n_pws = len(list(pwds))
     # print 'Number of passwords to test: %d' % (n_pws)

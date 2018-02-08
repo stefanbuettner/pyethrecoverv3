@@ -1,3 +1,6 @@
+import itertools
+
+
 class PwGenerator(object):
     def __init__(self, alphabet, max_length=-1, min_length=1, modification_rule=None):
         self.alphabet = alphabet
@@ -20,17 +23,18 @@ class PwGenerator(object):
         return self.next()
 
     def next(self):
-        if self.mod is not None:
-            try:
-                return self.mod.__next__()
-            except StopIteration:
-                pass
-        s = self._get_str_(self.i)
-        self.i += 1
-        if self.mod is not None:
-            self.mod.reset(s)
-            return self.mod.__next__()
-        return s
+        while True:
+            if self.mod is not None:
+                try:
+                    return next(self.mod)
+                except StopIteration:
+                    pass
+            s = self._get_str_(self.i)
+            self.i += 1
+            if self.mod is not None:
+                self.mod.reset(s)
+            else:
+                return s
 
     def _get_str_(self, i):
         if self.max_length >= 0 and i > self.max_length:
@@ -127,52 +131,87 @@ class Rule:
 
 
 class RuleCollection:
-    def __init__(self, rules, string=""):
+    """
+    This generator applies the given rules to the given string beginning with replacing one occurrence, then two,... .
+
+
+    It is equivalent to the following loop
+    # for replacement_count in range(len(replacement_indices) + 1):
+    #     for match_comb in itertools.combinations(replacement_indices, replacement_count):
+    #         rep = list()
+    #         for m in match_comb:
+    #             rep.append(replacements[m])
+    #
+    #         for rep_comb in itertools.product(*rep):
+    #             # print(str(match_comb) + " " + str(rep_comb))
+    #             s = string
+    #             for i in range(len(match_comb)):
+    #                 s = s[:match_comb[i]] + rep_comb[i] + s[match_comb[i] + 1:]
+    #             yield s
+    """
+    def __init__(self, rules, string=None):
         self.string = string
         self.rules = rules
         self.replacements = dict()
-        self.replacement_indices = list()
+        self.matches = list()
         self.replacement_count = 0
         self.match_combinations = None
         self.replacement_combinations = None
-        if self.string != "":
+        if self.string is not None:
             self.reset(string)
 
     def __iter__(self):
         return self
 
     def reset(self, s):
+        self.string = s
         self.replacements.clear()
+        self.matches.clear()
+        self.replacement_count = 0
+        self.match_combinations = None
+        self.replacement_combinations = None
+
         for r in self.rules:
-            r.reset(s)
+            r.reset(self.string)
             for mIdx in r.find_matches():
                 if mIdx in self.replacements:
                     self.replacements[mIdx].extend(r.replacements)
                 else:
-                    self.replacement_indices.append(mIdx)
+                    self.matches.append(mIdx)
                     self.replacements[mIdx] = r.replacements
-        self.match_combinations = itertools.combinations(self.replacement_indices, self.replacement_count)
-        self.replacement_combinations = itertools.product()
+        self.match_combinations = iter(itertools.combinations(self.matches, self.replacement_count))
 
     def next(self):
         return self.__next__()
 
     def __next__(self):
-        try:
-            combination = self.match_combinations.__next__()
+        if self.string is None:
+            raise StopIteration
 
-        except StopIteration:
-            self.replacement_count += 1
-            self.match_combinations = itertools.combinations(self.replacement_indices, self.replacement_count)
-            combination = self.match_combinations.__next__()
-        print(combination)
+        while True:
+            if self.replacement_count > len(self.matches):
+                raise StopIteration
 
-        # s = self.string
-        # offset = 0
-        # print(self.replacement_indices)
-        # for match_idx, rep_idx in self.replacement_indices:
-        #     s = s[:match_idx + offset] + self.replacements[match_idx][rep_idx] + s[match_idx + offset + 1:]
-        return self.string
+            if self.replacement_combinations is not None:
+                try:
+                    rep_comb = next(self.replacement_combinations)
+                    s = self.string
+                    for i in range(len(self.match_comb)):
+                        s = s[:self.match_comb[i]] + rep_comb[i] + s[self.match_comb[i] + 1:]
+                    return s
+                except StopIteration:
+                    pass
+
+            try:
+                self.match_comb = next(self.match_combinations)
+                rep = list()
+                for m in self.match_comb:
+                    rep.append(self.replacements[m])
+                self.replacement_combinations = iter(itertools.product(*rep))
+            except StopIteration:
+                self.replacement_count += 1
+                self.match_combinations = iter(itertools.combinations(self.matches, self.replacement_count))
+                self.replacement_combinations = None
 
 
 def combine_rules(string, rules):
@@ -212,30 +251,28 @@ if __name__ == "__main__":
     import json
     import itertools
     r_A = Rule("A", "4@")
-    r_a = Rule("a", "A", r_A)
+    r_a = Rule("a", "A")
 
-    r_O = Rule("O", "0", r_a)
-    r_o = Rule("o", "O", r_O)
+    r_O = Rule("O", "0")
+    r_o = Rule("o", "O")
 
-    r_l = Rule("l", "1", r_o)
+    r_l = Rule("l", "1")
 
-    r_E = Rule("E", "3", r_l)
-    r_e = Rule("e", "E", r_E)
+    r_E = Rule("E", "3")
+    r_e = Rule("e", "E")
 
-    r_S = Rule("S", "$", r_e)
-    r_s = Rule("s", "S", r_S)
+    r_S = Rule("S", "$")
+    r_s = Rule("s", "S")
 
-    r_I = Rule("I", "!", r_s)
-    r_i = Rule("i", "I", r_I)
+    r_I = Rule("I", "!")
+    r_i = Rule("i", "I")
 
-    r_B = Rule("B", "8", r_i)
-    r_b = Rule("b", "B", r_B)
+    r_B = Rule("B", "8")
+    r_b = Rule("b", "B")
 
-    r_T = Rule("T", "7", r_b)
-    r_t = Rule("t", "T", r_T)
+    r_T = Rule("T", "7")
+    r_t = Rule("t", "T")
 
-    r_p = Rule("p", "P", r_t)
-
-    pwds = combine_rules("AnAbel", [r_A, r_e])
+    pwds = PwGenerator(["Anabel"], max_length=2, modification_rule=RuleCollection([r_i], "AnAbel"))
     for pw in pwds:
         print(pw)
