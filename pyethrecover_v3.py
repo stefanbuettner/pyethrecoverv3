@@ -135,7 +135,13 @@ def __main__():
     if args.use_rules:
         replacement_rules = pwgen.RuleCollection(max_replacements=3)
 
-        replacement_rules.add(pwgen.Rule("A", "4@"))
+        replacement_rules.add(pwgen.Rule("ö", ["oe", "Oe", "oE", "OE"]))
+        replacement_rules.add(pwgen.Rule("h", "H"))
+        replacement_rules.add(pwgen.Rule("M", "m"))
+        replacement_rules.add(pwgen.Rule("m", "M"))
+        replacement_rules.add(pwgen.Rule("ü", ["ue", "Ue", "uE", "UE"]))
+        replacement_rules.add(pwgen.Rule("ä", ["ae", "Ae", "aE", "AE"]))
+        replacement_rules.add(pwgen.Rule("A", "4@a"))
         replacement_rules.add(pwgen.Rule("a", "A4@"))
         replacement_rules.add(pwgen.Rule("O", "o0"))
         replacement_rules.add(pwgen.Rule("o", "O0"))
@@ -152,6 +158,7 @@ def __main__():
         replacement_rules.add(pwgen.Rule("t", "T7"))
         replacement_rules.add(pwgen.Rule("p", "P"))
         replacement_rules.add(pwgen.Rule("r", "R"))
+
 
         passwords = pwgen.ApplyRules(passwords, replacement_rules)
 
