@@ -161,7 +161,7 @@ def __main__():
 
     r_r = pwgen.Rule("r", "R")
 
-    replacementRules = pwgen.RuleCollection([r_a])
+    replacementRules = pwgen.RuleCollection([r_a], max_replacements=3)
     g = pwgen.PwGenerator(["ana", "bel"], max_length=2, min_length=1, modification_rule=replacementRules)
     pwds = itertools.chain(pwds, g)
 

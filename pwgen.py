@@ -149,12 +149,14 @@ class RuleCollection:
     #                 s = s[:match_comb[i]] + rep_comb[i] + s[match_comb[i] + 1:]
     #             yield s
     """
-    def __init__(self, rules, string=None):
+    def __init__(self, rules, max_replacements=-1, string=None):
         self.string = string
         self.rules = rules
         self.replacements = dict()
         self.matches = list()
         self.replacement_count = 0
+        self.desired_max_replacements = max_replacements
+        self.max_replacements = self.desired_max_replacements
         self.match_combinations = None
         self.replacement_combinations = None
         if self.string is not None:
@@ -179,6 +181,9 @@ class RuleCollection:
                 else:
                     self.matches.append(mIdx)
                     self.replacements[mIdx] = r.replacements
+        self.max_replacements = self.desired_max_replacements
+        if self.max_replacements < 0:
+            self.max_replacements = len(self.matches)
         self.match_combinations = iter(itertools.combinations(self.matches, self.replacement_count))
 
     def next(self):
@@ -189,7 +194,7 @@ class RuleCollection:
             raise StopIteration
 
         while True:
-            if self.replacement_count > len(self.matches):
+            if self.replacement_count > self.max_replacements:
                 raise StopIteration
 
             if self.replacement_combinations is not None:
@@ -251,7 +256,7 @@ if __name__ == "__main__":
     import json
     import itertools
     r_A = Rule("A", "4@")
-    r_a = Rule("a", "A")
+    r_a = Rule("a", "A4@")
 
     r_O = Rule("O", "0")
     r_o = Rule("o", "O")
@@ -273,6 +278,8 @@ if __name__ == "__main__":
     r_T = Rule("T", "7")
     r_t = Rule("t", "T")
 
-    pwds = PwGenerator(["Anabel"], max_length=2, modification_rule=RuleCollection([r_i], "AnAbel"))
+    r_p = Rule("p", "P")
+
+    pwds = PwGenerator(["Anabel"], max_length=2, modification_rule=RuleCollection([r_a], max_replacements=1))
     for pw in pwds:
         print(pw)
