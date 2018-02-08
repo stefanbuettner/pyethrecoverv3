@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from keys import decode_keystore_json #keys.py from pyethereum, we only want the decode_keystore_json function
 import json
@@ -70,26 +70,25 @@ def __main__():
     signal.signal(signal.SIGINT, interrupt_handler)
 
     # Option parsing
-    from optparse import OptionParser
-    parser = OptionParser()
-    parser.add_option('-p', '--password',
-                      default=None, dest='pw',
-                      help="A single password to try against the wallet.")
-    parser.add_option('-f', '--passwords-file',
-                      default=None, dest='pwfile',
-                      help="A file containing a newline-delimited list of passwords to try. (default: %default)")
-    parser.add_option('-s', '--password-spec-file',
-                      default=None, dest='pwsfile',
-                      help="A file containing a password specification")
-    parser.add_option('-w', '--wallet',
-                      default='wallet.json', dest='wallet',
-                      help="The wallet against which to try the passwords. (default: %default)")
-    parser.add_option('-j', '--jobs',
-                      default='1', dest='jobs', type='int',
-                      help="Maximum number of threads to use. (default: %default)")
-    parser.add_option('-g', '--pwgenerator',
-                      default=None, dest='pwgenerator',
-                      help="Saved state of a password generator. "
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--password',
+                        default=None, dest='pw',
+                        help="A single password to try against the wallet.")
+    parser.add_argument('-f', '--passwords-file',
+                        default=None, dest='pwfile',
+                        help="A file containing a newline-delimited list of passwords to try. (default: %default)")
+    parser.add_argument('-s', '--password-spec-file',
+                        default=None, dest='pwsfile',
+                        help="A file containing a password specification")
+    parser.add_argument(dest='wallet', type=str, metavar="wallet-file",
+                        help="The wallet against which to try the passwords. (default: %default)")
+    parser.add_argument('-j', '--jobs',
+                        default='1', dest='jobs', type=int,
+                        help="Maximum number of threads to use. (default: %default)")
+    parser.add_argument('-g', '--pwgenerator',
+                        default=None, dest='pwgenerator',
+                        help="Saved state of a password generator. "
                             "If specified, the program continues with this generator.")
 
     (options, args) = parser.parse_args()
