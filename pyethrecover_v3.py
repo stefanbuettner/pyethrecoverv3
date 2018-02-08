@@ -4,11 +4,10 @@ from keys import decode_keystore_json #keys.py from pyethereum, we only want the
 import json
 import itertools
 import sys
-import traceback
 from joblib import Parallel, delayed
 import multiprocessing
 import pwgen
-import signal, os
+import signal
 
 
 # print(grammar)
@@ -27,25 +26,20 @@ class PasswordFoundException(Exception):
 
 
 def attempt(w, pw):
-    # print(pw)
-    # sys.stdout.write("\r")
-
-    # sys.stdout.write("\rAttempt #%d: %s" % (counter.value, pw)) #prints simple progress with # in list that is tested and the pw string
-    #sys.stdout.write("Attempt #%d: %s\n" % (counter.value, pw)) #prints simple progress with # in list that is tested and the pw string
-    #sys.stdout.flush()
-    #print(counter.value)
+    sys.stdout.write("Attempt #%d: %s\n" % (counter.value, pw)) #prints simple progress with # in list that is tested and the pw string
+    sys.stdout.flush()
     counter.increment()
 
     #if len(pw) < 10:
     #    return ""
     try:
         o = decode_keystore_json(w, pw)
-        print(o)
-        # print (pw)q
+        with open("password.txt", "w") as pwfile:
+            pwfile.write(pw)
+            print("\n\nYour password is:\n%s\n\n" % pw)
         raise PasswordFoundException(
             """\n\nYour password is:\n%s""" % o)
-    except ValueError as e:
-        # print(e)
+    except ValueError:
         return ""
 
 
@@ -133,10 +127,42 @@ def __main__():
         grammar = eval(open(options.pwsfile, 'r').read())
         pwds = itertools.chain(pwds, generate_all(grammar, ''))
 
+    pwgenerator = None
     if options.pwgenerator:
         print("Loading pwgenerator file %s" % options.pwgenerator)
         with open(options.pwgenerator) as pwgenfile:
             pwgenerator.from_json(pwgenfile.read())
+            pwds = itertools.chain(pwds, pwgenerator)
+
+    r_A = pwgen.Rule("A", "4@")
+    r_a = pwgen.Rule("a", "A", r_A)
+
+    r_O = pwgen.Rule("O", "0", r_a)
+    r_o = pwgen.Rule("o", "O", r_O)
+
+    r_l = pwgen.Rule("l", "1", r_o)
+
+    r_E = pwgen.Rule("E", "3", r_l)
+    r_e = pwgen.Rule("e", "E", r_E)
+
+    r_S = pwgen.Rule("S", "$", r_e)
+    r_s = pwgen.Rule("s", "S", r_S)
+
+    r_I = pwgen.Rule("I", "!", r_s)
+    r_i = pwgen.Rule("i", "I", r_I)
+
+    r_B = pwgen.Rule("B", "8", r_i)
+    r_b = pwgen.Rule("b", "B", r_B)
+
+    r_T = pwgen.Rule("T", "7", r_b)
+    r_t = pwgen.Rule("t", "T", r_T)
+
+    r_p = pwgen.Rule("p", "P", r_t)
+
+    r_r = pwgen.Rule("r", "R", r_p)
+
+    g = pwgen.PwGenerator(["anabel", "1337"], modification_rule=r_r, max_length=1)
+    pwds = itertools.chain(pwds, g)
 
     global counter
     counter = Counter()
@@ -148,13 +174,10 @@ def __main__():
     print("Using %d jobs" % options.jobs)
     try:
         Parallel(n_jobs=options.jobs, backend="threading")(delayed(attempt)(w, pw) for pw in pwds)
-        # print("\n")
     except Exception as e:
-        traceback.print_exc()
-        while True:
-            sys.stdout.write('\a')
-            sys.stdout.flush()
-    exit(0)
+        exit(0)
+        pass
+    exit(1)
 
 
 if __name__ == "__main__":

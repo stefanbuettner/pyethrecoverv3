@@ -51,7 +51,7 @@ class Rule():
         return self.maxTransformations;
     
     def getTransformation(self, i):
-        transformationArray = baseconvert(i,len(self.possibilities));
+        transformationArray = baseconvert(i, len(self.possibilities));
         
         while(len(transformationArray) < len(self.indices) ):
             transformationArray.append(0)
