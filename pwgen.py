@@ -184,6 +184,7 @@ class RuleCollection(object):
                 else:
                     self.matches.append(mIdx)
                     self.replacements[mIdx] = r.replacements
+        self.matches.sort()
         self.max_replacements = self.desired_max_replacements
         if self.max_replacements < 0:
             self.max_replacements = len(self.matches)
@@ -204,8 +205,10 @@ class RuleCollection(object):
                 try:
                     rep_comb = next(self.replacement_combinations)
                     s = self.string
+                    offset = 0
                     for i in range(len(self.match_comb)):
-                        s = s[:self.match_comb[i]] + rep_comb[i] + s[self.match_comb[i] + 1:]
+                        s = s[:self.match_comb[i] + offset] + rep_comb[i] + s[self.match_comb[i] + offset + 1:]
+                        offset += len(rep_comb[i]) - 1
                     return s
                 except StopIteration:
                     pass
@@ -245,7 +248,7 @@ def combine_rules(string, rules):
                 #print(str(match_comb) + " " + str(rep_comb))
                 s = string
                 for i in range(len(match_comb)):
-                    s = s[:match_comb[i]] + rep_comb[i] + s[match_comb[i] + 1:]
+                    s = string[:match_comb[i]] + rep_comb[i] + string[match_comb[i] + 1:]
                 yield s
 
 
