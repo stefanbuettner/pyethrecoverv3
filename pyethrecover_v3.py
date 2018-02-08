@@ -56,12 +56,13 @@ class Counter(object):
         return self.val.value
 
 
-pwgenerator = pwgen.PwGenerator(pwgen.digits + pwgen.alpha + pwgen.Alpha + pwgen.symbols, min_length=8)
+# Needs to be in front of the interrupt_handler
+brute_force_passwords = pwgen.PwGenerator(pwgen.digits + pwgen.alpha + pwgen.Alpha + pwgen.symbols, min_length=8)
 
 
 def interrupt_handler(signum, frame):
     with open("pwgenerator.json", "w") as file:
-        file.write(pwgenerator.to_json())
+        file.write(brute_force_passwords.to_json())
     exit(1)
 
 
@@ -77,102 +78,101 @@ def __main__():
                         help="A single password to try against the wallet.")
     parser.add_argument('-f', '--passwords-file',
                         default=None, dest='pwfile',
-                        help="A file containing a newline-delimited list of passwords to try. (default: %default)")
+                        help="A file containing a newline-delimited list of passwords to try.")
     parser.add_argument('-s', '--password-spec-file',
                         default=None, dest='pwsfile',
                         help="A file containing a password specification")
     parser.add_argument(dest='wallet', type=str, metavar="wallet-file",
-                        help="The wallet against which to try the passwords. (default: %default)")
-    parser.add_argument('-j', '--jobs',
-                        default='1', dest='jobs', type=int,
-                        help="Maximum number of threads to use. (default: %default)")
+                        help="The wallet against which to try the passwords.")
+    parser.add_argument('-b', '--brute-force',
+                        dest='brute_force', action='store_true',
+                        help='Brute force the password over the alphabet set in code, after all given password combinations (including replacements) have been tested.')
     parser.add_argument('-g', '--pwgenerator',
                         default=None, dest='pwgenerator',
-                        help="Saved state of a password generator. "
-                            "If specified, the program continues with this generator.")
+                        help="Saved state of a password generator. If specified, the program continues with this generator.")
+    parser.add_argument('-r', '--rules',
+                        dest='use_rules', action='store_true',
+                        help="Apply replacement rules to the given passwords. See the code for more details.")
+    parser.add_argument('-j', '--jobs',
+                        default='1', dest='jobs', type=int,
+                        help="Maximum number of threads to use.")
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
     try:
-        with open(options.wallet) as wallet_file:
+        with open(args.wallet) as wallet_file:
             try:
                 w = json.load(wallet_file)
             except json.JSONDecodeError:
-                print("Corrupt file '%s'." % options.wallet, file=sys.stderr)
+                print("Corrupt file '%s'." % args.wallet, file=sys.stderr)
                 exit(1)
     except IOError:
-        print("Could not load file '%s'." % options.wallet, file=sys.stderr)
+        print("Could not load file '%s'." % args.wallet, file=sys.stderr)
         exit(1)
 
     if not w:
         print("Wallet file not found! (-h for help)")
         exit(1)
 
-    pwds = []
+    passwords = []
 
-    if options.pw:
-        pwds.append(options.pw)
+    if args.pw:
+        passwords.append(args.pw)
 
-    if options.pwfile:
+    if args.pwfile:
         try:
-            with open(options.pwfile) as pwfile:
+            with open(args.pwfile) as pwfile:
                 pwlist = pwfile.read().splitlines()
-                pwds.extend(pwlist)
+                passwords.extend(pwlist)
         except:
             print("Password file not found! (-h for help)")
             exit(1)
 
-    if options.pwsfile:
-        grammar = eval(open(options.pwsfile, 'r').read())
-        pwds = itertools.chain(pwds, generate_all(grammar, ''))
+    if args.pwsfile:
+        grammar = eval(open(args.pwsfile, 'r').read())
+        passwords = itertools.chain(passwords, generate_all(grammar, ''))
 
-    pwgenerator = None
-    if options.pwgenerator:
-        print("Loading pwgenerator file %s" % options.pwgenerator)
-        with open(options.pwgenerator) as pwgenfile:
-            pwgenerator.from_json(pwgenfile.read())
-            pwds = itertools.chain(pwds, pwgenerator)
+    if args.use_rules:
+        replacement_rules = pwgen.RuleCollection(max_replacements=3)
 
-    #r_A = pwgen.Rule("A", "4@")
-    r_a = pwgen.Rule("a", "A4@")
+        replacement_rules.add(pwgen.Rule("A", "4@"))
+        replacement_rules.add(pwgen.Rule("a", "A4@"))
+        replacement_rules.add(pwgen.Rule("O", "o0"))
+        replacement_rules.add(pwgen.Rule("o", "O0"))
+        replacement_rules.add(pwgen.Rule("l", "1"))
+        replacement_rules.add(pwgen.Rule("E", "3e"))
+        replacement_rules.add(pwgen.Rule("e", "3E"))
+        replacement_rules.add(pwgen.Rule("S", "$s"))
+        replacement_rules.add(pwgen.Rule("s", "S$"))
+        replacement_rules.add(pwgen.Rule("I", "!i"))
+        replacement_rules.add(pwgen.Rule("i", "!I"))
+        replacement_rules.add(pwgen.Rule("B", "8b"))
+        replacement_rules.add(pwgen.Rule("b", "B8"))
+        replacement_rules.add(pwgen.Rule("T", "7t"))
+        replacement_rules.add(pwgen.Rule("t", "T7"))
+        replacement_rules.add(pwgen.Rule("p", "P"))
+        replacement_rules.add(pwgen.Rule("r", "R"))
 
-    r_O = pwgen.Rule("O", "0")
-    r_o = pwgen.Rule("o", "O")
+        passwords = pwgen.ApplyRules(passwords, replacement_rules)
 
-    r_l = pwgen.Rule("l", "1")
-
-    r_E = pwgen.Rule("E", "3")
-    r_e = pwgen.Rule("e", "E")
-
-    r_S = pwgen.Rule("S", "$")
-    r_s = pwgen.Rule("s", "S")
-
-    r_I = pwgen.Rule("I", "!")
-    r_i = pwgen.Rule("i", "I")
-
-    r_B = pwgen.Rule("B", "8")
-    r_b = pwgen.Rule("b", "B")
-
-    r_T = pwgen.Rule("T", "7")
-    r_t = pwgen.Rule("t", "T")
-
-    r_p = pwgen.Rule("p", "P")
-
-    r_r = pwgen.Rule("r", "R")
-
-    replacementRules = pwgen.RuleCollection([r_a], max_replacements=3)
-    g = pwgen.PwGenerator(["ana", "bel"], max_length=2, min_length=1, modification_rule=replacementRules)
-    pwds = itertools.chain(pwds, g)
+    if args.brute_force:
+        if args.pwgenerator:
+            print("Loading pwgenerator file %s" % args.pwgenerator)
+            with open(args.pwgenerator) as pwgenfile:
+                # pwgenerator exists at global scope.
+                brute_force_passwords.from_json(pwgenfile.read())
+                passwords = itertools.chain(passwords, brute_force_passwords)
+        passwords = itertools.chain(passwords, brute_force_passwords)
 
     global counter
     counter = Counter()
 
-    # n_pws = len(list(pwds))
+    # n_pws = len(list(passwords))
     # print 'Number of passwords to test: %d' % (n_pws)
 
-    print("Using %d jobs" % options.jobs)
+    print("Using %d jobs" % args.jobs)
     try:
-        Parallel(n_jobs=options.jobs, backend="threading")(delayed(attempt)(w, pw) for pw in pwds)
+        Parallel(n_jobs=args.jobs, backend="threading")(delayed(attempt)(w, pw) for pw in passwords)
     except Exception as e:
         exit(0)
         pass

@@ -58,7 +58,7 @@ class PwGenerator(object):
         self.max_length = obj['max_length']
 
 
-class Rule:
+class Rule(object):
     def __init__(self, match, replacements, modification_rule=None):
         if len(match) != 1:
             raise RuntimeError("match must be one character but is %s" % match)
@@ -130,7 +130,7 @@ class Rule:
         return s
 
 
-class RuleCollection:
+class RuleCollection(object):
     """
     This generator applies the given rules to the given string beginning with replacing one occurrence, then two,... .
 
@@ -149,7 +149,7 @@ class RuleCollection:
     #                 s = s[:match_comb[i]] + rep_comb[i] + s[match_comb[i] + 1:]
     #             yield s
     """
-    def __init__(self, rules, max_replacements=-1, string=None):
+    def __init__(self, rules=[], max_replacements=-1, string=None):
         self.string = string
         self.rules = rules
         self.replacements = dict()
@@ -164,6 +164,9 @@ class RuleCollection:
 
     def __iter__(self):
         return self
+
+    def add(self, rule):
+        self.rules.append(rule)
 
     def reset(self, s):
         self.string = s
@@ -245,6 +248,33 @@ def combine_rules(string, rules):
                     s = s[:match_comb[i]] + rep_comb[i] + s[match_comb[i] + 1:]
                 yield s
 
+
+class ApplyRules(object):
+    """
+    This is a generator which applies the given rule to every element in the given iterable.
+    """
+    def __init__(self, iterable, rule):
+        """
+        :param iterable: An iterator over strings.
+        :param rule: Might be a Rule or a RuleCollection.
+        """
+        self.iterable = iterable
+        self.rule = rule
+
+    def __iter__(self):
+        self.iterable = iter(self.iterable)
+        return self
+
+    def next(self):
+        return self.__next__()
+
+    def __next__(self):
+        while True:
+            try:
+                return next(self.rule)
+            except StopIteration:
+                string = next(self.iterable)
+                self.rule.reset(string)
 
 
 digits = "0123456789"
