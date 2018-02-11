@@ -4,19 +4,28 @@ import itertools
 class PwGenerator(object):
     def __init__(self, alphabet, max_length=-1, min_length=1, modification_rule=None):
         self.alphabet = alphabet
-        self.i = 0
-        self.mod = modification_rule
-        n = len(alphabet)
-        while min_length > 0:
-            self.i = 1 + self.i * n
-            min_length -= 1
-        self.max_length = 0
-        while max_length >= 0:
-            self.max_length = 1 + self.max_length * n
-            max_length -= 1
-        self.max_length -= 1
+        self.modification_rule = modification_rule
+        self.min_length = min_length
+        self.max_length = max_length
+        self._i = 0
+        self._max_i = -1
 
     def __iter__(self):
+        n = len(self.alphabet)
+        if self._i <= 0:
+            min_length = self.min_length
+            self._i = 0
+            while min_length > 0:
+                self._i = 1 + self._i * n
+                min_length -= 1
+
+        if self._max_i < 0:
+            max_length = self.max_length
+            self._max_i = 0
+            while max_length >= 0:
+                self._max_i = 1 + self._max_i * n
+                max_length -= 1
+            self._max_i -= 1
         return self
 
     def __next__(self):
@@ -24,20 +33,20 @@ class PwGenerator(object):
 
     def next(self):
         while True:
-            if self.mod is not None:
+            if self.modification_rule is not None:
                 try:
-                    return next(self.mod)
+                    return next(self.modification_rule)
                 except StopIteration:
                     pass
-            s = self._get_str_(self.i)
-            self.i += 1
-            if self.mod is not None:
-                self.mod.reset(s)
+            s = self._get_str_(self._i)
+            self._i += 1
+            if self.modification_rule is not None:
+                self.modification_rule.reset(s)
             else:
                 return s
 
     def _get_str_(self, i):
-        if self.max_length >= 0 and i > self.max_length:
+        if self._max_i >= 0 and i > self._max_i:
             raise StopIteration()
         s = ""
         m = len(self.alphabet)
@@ -54,7 +63,9 @@ class PwGenerator(object):
         import json
         obj = json.loads(pwgen_json)
         self.alphabet = obj['alphabet']
-        self.i = obj['i']
+        self._i = obj['_i']
+        self._max_i = obj['_max_i']
+        self.min_length = obj['min_length']
         self.max_length = obj['max_length']
 
 
